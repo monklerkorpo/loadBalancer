@@ -1,0 +1,39 @@
+services:
+  loadbalancer:
+    build: .
+    container_name: loadbalancer
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./configs:/configs:ro,z  # Монтируем локальную директорию с конфигами
+    command: ["/loadbalancer", "-config=/configs/config.yaml"]
+    environment:
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      retries: 3
+      start_period: 10s
+      timeout: 5s
+    depends_on:
+      - backend1
+      - backend2
+
+  backend1:
+    build: ./mock/server1
+    container_name: backend1
+    ports:
+      - "9001:9001"
+    command: ["go", "run", "main.go"]
+
+  backend2:
+    build: ./mock/server2
+    container_name: backend2
+    ports:
+      - "9002:9002"
+    command: ["go", "run", "main.go"]
+
+networks:
+  lb-network:
+    driver: bridge
+    name: lb-network
